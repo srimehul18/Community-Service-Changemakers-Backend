@@ -28,6 +28,17 @@ const userSchema = new mongoose.Schema(
       default: 'resident'
     },
 
+    age: {
+      type: Number,
+      min: 1,
+      max: 120
+    },
+
+    phone: {
+      type: String,
+      trim: true
+    },
+
     tower: {
       type: String,
       trim: true
@@ -36,6 +47,11 @@ const userSchema = new mongoose.Schema(
     flat: {
       type: String,
       trim: true
+    },
+
+    householdMembers: {
+      type: Number,
+      min: 1
     }
   },
   {

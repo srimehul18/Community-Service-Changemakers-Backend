@@ -494,7 +494,8 @@ export const getIssueAnalytics = async (req, res) => {
       resolvedIssues,
       closedIssues,
       issuesByPriority,
-      issuesByCategory
+      issuesByCategory,
+      recurringIssues
     ] = await Promise.all([
       Issue.countDocuments(),
 
@@ -506,6 +507,7 @@ export const getIssueAnalytics = async (req, res) => {
 
       Issue.countDocuments({ status: 'Closed' }),
 
+      // Issues by priority
       Issue.aggregate([
         {
           $group: {
@@ -518,6 +520,7 @@ export const getIssueAnalytics = async (req, res) => {
         }
       ]),
 
+      // Issues by category
       Issue.aggregate([
         {
           $group: {
@@ -551,6 +554,71 @@ export const getIssueAnalytics = async (req, res) => {
         {
           $sort: { count: -1 }
         }
+      ]),
+
+      // Recurring issues:
+      // same category + same location reported 3 or more times
+      Issue.aggregate([
+        {
+          $group: {
+            _id: {
+              category: '$category',
+              tower: { $ifNull: ['$location.tower', ''] },
+              floor: { $ifNull: ['$location.floor', ''] },
+              flat: { $ifNull: ['$location.flat', ''] },
+              commonArea: { $ifNull: ['$location.commonArea', ''] }
+            },
+            count: { $sum: 1 }
+          }
+        },
+
+        // Only groups with 3 or more reports are recurring
+        {
+          $match: {
+            count: { $gte: 3 }
+          }
+        },
+
+        // Get category name
+        {
+          $lookup: {
+            from: 'categories',
+            localField: '_id.category',
+            foreignField: '_id',
+            as: 'category'
+          }
+        },
+
+        {
+          $unwind: {
+            path: '$category',
+            preserveNullAndEmptyArrays: true
+          }
+        },
+
+        // Create a readable location string
+        {
+          $project: {
+            _id: 0,
+
+            category: {
+              $ifNull: ['$category.name', 'Unknown']
+            },
+
+            tower: '$_id.tower',
+            floor: '$_id.floor',
+            flat: '$_id.flat',
+            commonArea: '$_id.commonArea',
+
+            count: 1
+          }
+        },
+
+        {
+          $sort: {
+            count: -1
+          }
+        }
       ])
     ])
 
@@ -560,10 +628,15 @@ export const getIssueAnalytics = async (req, res) => {
         open: openIssues,
         inProgress: inProgressIssues,
         resolved: resolvedIssues,
-        closed: closedIssues
+        closed: closedIssues,
+
+        // Number of recurring category/location combinations
+        recurring: recurringIssues.length
       },
+
       issuesByPriority,
-      issuesByCategory
+      issuesByCategory,
+      recurringIssues
     })
   } catch (error) {
     res.status(500).json({

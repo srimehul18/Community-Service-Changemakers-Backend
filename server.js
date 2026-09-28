@@ -9,6 +9,7 @@ import authRoutes from './routes/authRoutes.js'
 import protect from './middleware/authMiddleware.js'
 import authorizeRoles from './middleware/roleMiddleware.js'
 import uploadRoutes from './routes/uploadRoutes.js'
+import societyConfigRoutes from './routes/societyConfigRoutes.js'
 
 dotenv.config()
 
@@ -21,6 +22,7 @@ app.use('/api/categories', categoryRoutes)
 app.use('/api/issues', issueRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/upload', uploadRoutes)
+app.use('/api/society-config', societyConfigRoutes)
 
 app.get('/', (req, res) => {
   res.send('MVL Coral API is running')

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
+import { isStrongPassword } from '../utils/validation.js'
 
 const generateToken = (userId) => {
   return jwt.sign(
@@ -23,6 +24,13 @@ export const register = async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({
         message: 'Name, email and password are required'
+      })
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        message:
+          'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character. Spaces are not allowed.'
       })
     }
 
@@ -59,7 +67,6 @@ export const register = async (req, res) => {
         flat: user.flat
       }
     })
-
   } catch (error) {
     res.status(500).json({
       message: 'Registration failed',
@@ -114,7 +121,6 @@ export const login = async (req, res) => {
         flat: user.flat
       }
     })
-
   } catch (error) {
     res.status(500).json({
       message: 'Login failed',

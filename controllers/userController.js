@@ -1,6 +1,10 @@
 import bcrypt from 'bcryptjs'
 import User from '../models/User.js'
 import Issue from '../models/Issue.js'
+import {
+  isStrongPassword,
+  isValidIndianMobile
+} from '../utils/validation.js'
 
 export const createUser = async (req, res) => {
   try {
@@ -16,6 +20,13 @@ export const createUser = async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({
         message: 'Name, email and password are required'
+      })
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        message:
+          'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character. Spaces are not allowed.'
       })
     }
 
@@ -59,9 +70,7 @@ export const createUser = async (req, res) => {
 
 export const getUsers = async (req, res) => {
   try {
-    const users = await User.find().select(
-      '-password'
-    )
+    const users = await User.find().select('-password')
 
     res.status(200).json(users)
   } catch (error) {
@@ -147,16 +156,26 @@ export const updateMyProfile = async (req, res) => {
       })
     }
 
+    if (phone !== undefined) {
+      if (
+        phone !== '' &&
+        !isValidIndianMobile(phone)
+      ) {
+        return res.status(400).json({
+          message:
+            'Phone number must be exactly 10 digits and start with 6, 7, 8, or 9.'
+        })
+      }
+
+      user.phone = phone
+    }
+
     if (name !== undefined) {
       user.name = name
     }
 
     if (age !== undefined) {
       user.age = age
-    }
-
-    if (phone !== undefined) {
-      user.phone = phone
     }
 
     if (tower !== undefined) {
@@ -236,6 +255,13 @@ export const updateUser = async (req, res) => {
     }
 
     if (password !== undefined) {
+      if (!isStrongPassword(password)) {
+        return res.status(400).json({
+          message:
+            'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character. Spaces are not allowed.'
+        })
+      }
+
       user.password = await bcrypt.hash(password, 10)
     }
 
